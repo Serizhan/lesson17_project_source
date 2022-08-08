@@ -87,7 +87,14 @@ class MoviesView(Resource):
         if genre_id is not None:
             request_movies = request_movies.filter(Movie.genre_id == genre_id)
         movies = request_movies.all()
-        return movies_schema.dump(movies), 200
+        return movies_schema.dumps(movies, ensure_ascii=False), 200
+
+    def post(self):
+        req_json = request.json
+        new_movie = Movie(**req_json)
+        with db.session.begin():
+            db.session.add(new_movie)
+        return "", 201
 
 
 @movie_ns.route('/<int:mid>')
@@ -95,26 +102,37 @@ class MoviesView(Resource):
     def get(self, mid: int):
         try:
             movie_by_mid = Movie.query.get(mid)
-            return movie_schema.dumps(movie_by_mid), 200
+            return movie_schema.dumps(movie_by_mid, ensure_ascii=False), 200
         except Exception as e:
             return "", 404
+
+    def put(self, mid):
+        movie = Movie.query.get(mid)
+        req_json = request.json
+        movie.name = req_json.get("name")
+        movie.title = req_json.get("title")
+        movie.description = req_json.get("description")
+        movie.trailer = req_json.get("trailer")
+        movie.year = req_json.get("year")
+        movie.rating = req_json.get("rating")
+        movie.genre_id = req_json.get("genre_id")
+        movie.director_id = req_json.get("director_id")
+        db.session.add(movie)
+        db.session.commit()
+        return "", 204
+
+    def delete(self, mid: int):
+        movie = Movie.query.get(mid)
+        db.session.delete(movie)
+        db.session.commit()
+        return "", 204
 
 
 @director_ns.route('/')
 class DirectorView(Resource):
     def get(self):
         all_director = Director.query.all()
-        return directors_schema.dumps(all_director), 200
-
-
-@director_ns.route('/<int:did>')
-class DirectorView(Resource):
-    def get(self, did: int):
-        try:
-            director_by_did = Director.query.get(did)
-            return director_schema.dumps(director_by_did), 200
-        except Exception as e:
-            return "", 404
+        return directors_schema.dumps(all_director, ensure_ascii=False), 200
 
     def post(self):
         req_json = request.json
@@ -122,6 +140,16 @@ class DirectorView(Resource):
         with db.session.begin():
             db.session.add(new_director)
         return "", 201
+
+
+@director_ns.route('/<int:did>')
+class DirectorView(Resource):
+    def get(self, did: int):
+        try:
+            director_by_did = Director.query.get(did)
+            return director_schema.dumps(director_by_did, ensure_ascii=False), 200
+        except Exception as e:
+            return "", 404
 
     def put(self, did):
         director = Director.query.get(did)
@@ -142,17 +170,7 @@ class DirectorView(Resource):
 class GenreView(Resource):
     def get(self):
         all_genres = Genre.query.all()
-        return genres_schema.dumps(all_genres), 200
-
-
-@genre_ns.route('/<int:gid>')
-class GenreView(Resource):
-    def get(self, gid: int):
-        try:
-            genre_by_did = Genre.query.get(gid)
-            return genre_schema.dumps(genre_by_did), 200
-        except Exception as e:
-            return "", 404
+        return genres_schema.dumps(all_genres, ensure_ascii=False), 200
 
     def post(self):
         req_json = request.json
@@ -160,6 +178,16 @@ class GenreView(Resource):
         with db.session.begin():
             db.session.add(new_director)
         return "", 201
+
+
+@genre_ns.route('/<int:gid>')
+class GenreView(Resource):
+    def get(self, gid: int):
+        try:
+            genre_by_did = Genre.query.get(gid)
+            return genre_schema.dumps(genre_by_did, ensure_ascii=False), 200
+        except Exception as e:
+            return "", 404
 
     def put(self, gid):
         genre = Genre.query.get(gid)
